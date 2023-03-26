@@ -24,11 +24,23 @@
 
 - (void)documentPicker:(UIDocumentPickerViewController *)controller
     didPickDocumentsAtURLs:(NSArray<NSURL *> *)urls {
+  NSFileCoordinator *coordinator =
+      [[NSFileCoordinator alloc] initWithFilePresenter:nil];
   for (NSURL *url in urls) {
-    NSData *data = [NSData dataWithContentsOfURL:url
-                                         options:NSDataReadingMappedIfSafe
-                                           error:nil];
-    self.closure(data);
+    if ([url startAccessingSecurityScopedResource]) {
+      [coordinator
+          coordinateReadingItemAtURL:url
+                             options:NSFileCoordinatorReadingWithoutChanges
+                               error:nil
+                          byAccessor:^(NSURL *newUrl) {
+                            NSData *data = [NSData
+                                dataWithContentsOfURL:newUrl
+                                              options:NSDataReadingMappedIfSafe
+                                                error:nil];
+                            self.closure(data);
+                          }];
+      [url stopAccessingSecurityScopedResource];
+    }
   }
   self.closure(nil);
 }
